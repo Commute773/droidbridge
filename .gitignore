@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+/build
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration
+local.properties
+
+# Kotlin
+.kotlin/
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+captures/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Release artifacts
+*.apk
+*.aab
+*.keystore
+release/
