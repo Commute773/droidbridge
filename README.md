@@ -1,32 +1,7 @@
 # DroidBridge
 
-A tiny Android app that exposes the phone's Bluetooth LE stack as a local
-HTTP + WebSocket service, so any other machine on the network can drive BLE
-peripherals through the phone's radio.
-
-## Why
-
-Desktop BLE libraries (Noble on macOS/Linux, WinRT on Windows, BlueZ on Linux)
-are all maintained independently and each one has its own failure modes:
-pairing loss when you put the laptop to sleep, disconnects when you change
-Wi-Fi networks, flaky scan results, inconsistent MTU negotiation. An Android
-phone, by contrast, is a battery-backed, always-on BLE host that Google
-actively maintains — it stays bonded, keeps links alive across sleep, and has
-a unified API on every modern device.
-
-DroidBridge just forwards the Android BLE APIs over HTTP/WebSocket:
-
-- **REST endpoints** for all imperative actions: scan, connect, discover,
-  read, write, enable notifications, request MTU.
-- **One WebSocket stream** for async events: incoming notifications,
-  connection state changes, scan results.
-- **Per-device serialized writes** — Android's `BluetoothGatt` only accepts
-  one outstanding write per connection, so the server queues writes behind
-  `onCharacteristicWrite` callbacks and only returns `ok:true` when the
-  controller has actually accepted the packet.
-
-It's intentionally dumb. There's no protocol parsing, no device-specific
-logic, no authentication. Run it on your own network.
+Phone can go many place, computer can only go one place, what if I want to
+connect to bluetooth in place where computer isn't? Answer? Droidbridge.
 
 ## Building
 
