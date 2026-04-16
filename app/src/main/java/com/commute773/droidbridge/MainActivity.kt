@@ -70,12 +70,38 @@ class MainActivity : AppCompatActivity() {
         checkPermissions()
         updateStatus()
         updateIp()
+        autoStartServiceIfPermitted()
     }
 
     override fun onResume() {
         super.onResume()
         updateStatus()
         updateIp()
+        autoStartServiceIfPermitted()
+    }
+
+    private fun autoStartServiceIfPermitted() {
+        // Skip if already running.
+        if (BridgeService.instance != null) return
+        // Only start if all required perms are granted; otherwise the user will
+        // see the Start Server button after accepting the prompts.
+        if (!hasAllPermissions()) return
+        val serviceIntent = Intent(this, BridgeService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+        statusText.postDelayed({ updateStatus() }, 500)
+    }
+
+    private fun hasAllPermissions(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) return false
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return false
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return false
+        return true
     }
 
     private fun checkPermissions() {
@@ -164,6 +190,8 @@ class MainActivity : AppCompatActivity() {
             val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
             if (!allGranted) {
                 statusText.text = "Status: Permissions required"
+            } else {
+                autoStartServiceIfPermitted()
             }
         }
     }
