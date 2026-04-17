@@ -1,5 +1,6 @@
 package com.commute773.droidbridge
 
+import android.content.Context
 import android.bluetooth.BluetoothGattCharacteristic
 import android.util.Log
 import com.google.gson.Gson
@@ -10,6 +11,7 @@ import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 class BridgeServer(
+    private val context: Context,
     private val bleManager: BleManager,
     port: Int = 8765
 ) : NanoWSD(port) {
@@ -68,6 +70,11 @@ class BridgeServer(
         val method = session.method
 
         Log.i(TAG, "$method $uri")
+
+        val authFailure = unauthorizedResponseIfNeeded(session)
+        if (authFailure != null) {
+            return authFailure
+        }
 
         // Handle WebSocket upgrade
         if (isWebsocketRequested(session)) {
@@ -230,6 +237,43 @@ class BridgeServer(
         }
     }
 
+    private fun unauthorizedResponseIfNeeded(session: IHTTPSession): Response? {
+        val settings = BridgePreferences.getAuthSettings(context)
+        val header = session.headers["authorization"] ?: session.headers["Authorization"]
+
+        if (settings.bearerToken.isBlank()) {
+            return if (settings.allowAnonymous) {
+                null
+            } else {
+                errorResponse(401, "Anonymous access is disabled and no bearer token is configured")
+            }
+        }
+
+        if (header.isNullOrBlank()) {
+            return when {
+                settings.allowAnonymous -> null
+                else -> unauthorizedResponse()
+            }
+        }
+
+        val expectedHeader = "Bearer ${settings.bearerToken}"
+        return if (settings.bearerToken.isNotBlank() && header == expectedHeader) {
+            null
+        } else {
+            unauthorizedResponse()
+        }
+    }
+
+    private fun unauthorizedResponse(): Response {
+        return newFixedLengthResponse(
+            Response.Status.UNAUTHORIZED,
+            "application/json",
+            gson.toJson(mapOf("error" to "Unauthorized"))
+        ).apply {
+            addHeader("WWW-Authenticate", "Bearer")
+        }
+    }
+
     private fun jsonResponse(data: Any): Response {
         val json = gson.toJson(data)
         return newFixedLengthResponse(Response.Status.OK, "application/json", json)
@@ -238,6 +282,7 @@ class BridgeServer(
     private fun errorResponse(code: Int, message: String): Response {
         val status = when (code) {
             400 -> Response.Status.BAD_REQUEST
+            401 -> Response.Status.UNAUTHORIZED
             404 -> Response.Status.NOT_FOUND
             else -> Response.Status.INTERNAL_ERROR
         }
