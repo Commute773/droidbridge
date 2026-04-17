@@ -75,7 +75,7 @@ class BridgeService : Service() {
 
     private fun startServer() {
         if (server == null) {
-            server = BridgeServer(bleManager, PORT)
+            server = BridgeServer(applicationContext, bleManager, PORT)
             server?.start()
             Log.i(TAG, "Server started on port $PORT")
         }

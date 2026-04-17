@@ -90,6 +90,7 @@ class BleManager(private val context: Context) {
 
         scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
+                val advertisedName = result.scanRecord?.deviceName ?: result.device.name
                 val mfgData = result.scanRecord?.manufacturerSpecificData?.let { data ->
                     (0 until data.size()).associate { i ->
                         data.keyAt(i) to data.valueAt(i)
@@ -97,7 +98,7 @@ class BleManager(private val context: Context) {
                 }
                 onScanResult?.invoke(ScanResultInfo(
                     address = result.device.address,
-                    name = result.device.name,
+                    name = advertisedName,
                     rssi = result.rssi,
                     manufacturerData = mfgData
                 ))
