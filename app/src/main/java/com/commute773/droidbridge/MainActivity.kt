@@ -50,21 +50,34 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(titleText)
 
+        val tokenRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 32, 0, 0)
+        }
+
         val tokenLabel = TextView(this).apply {
             text = "Bearer token"
             textSize = 16f
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(0, 32, 0, 12)
+            setPadding(0, 0, 24, 0)
         }
-        layout.addView(tokenLabel)
+        tokenRow.addView(tokenLabel)
 
         bearerTokenInput = EditText(this).apply {
-            hint = "Optional bearer token"
+            hint = "Bearer token"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             setSingleLine(true)
         }
-        layout.addView(
+        tokenRow.addView(
             bearerTokenInput,
+            LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        )
+        layout.addView(
+            tokenRow,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -214,9 +227,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateIp() {
-        val ip = getLocalIpAddress()
-        ipText.text = if (ip != null) {
-            "http://$ip:${BridgeService.PORT}"
+        val addresses = getLocalIpAddress()
+        ipText.text = if (addresses != null) {
+            addresses
+                .lineSequence()
+                .filter { it.isNotBlank() }
+                .joinToString("\n") { "http://$it:${BridgeService.PORT}" }
         } else {
             "IP: Not connected to network"
         }
@@ -224,6 +240,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getLocalIpAddress(): String? {
         try {
+            val addresses = mutableListOf<String>()
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces.hasMoreElements()) {
                 val intf = interfaces.nextElement()
@@ -231,10 +248,11 @@ class MainActivity : AppCompatActivity() {
                 while (addrs.hasMoreElements()) {
                     val addr = addrs.nextElement()
                     if (!addr.isLoopbackAddress && addr is Inet4Address) {
-                        return addr.hostAddress
+                        addresses.add(addr.hostAddress ?: continue)
                     }
                 }
             }
+            return addresses.distinct().takeIf { it.isNotEmpty() }?.joinToString("\n")
         } catch (e: Exception) {
             e.printStackTrace()
         }
